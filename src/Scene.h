@@ -11,6 +11,7 @@ struct SceneConfig {
     float rayOrigin[3] = {0.0f, 0.5f, 2.0f};
     float rayDirEuler[3] = {0.0f, -180.0f, 0.0f};
     glm::vec3 rayDir = glm::vec3(0.0f, 0.0f, -1.0f);
+    float originRadius = 0.05f;
 
     bool showBVHBoxes = true;
     bool showRay = true;

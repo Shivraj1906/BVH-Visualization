@@ -149,6 +149,7 @@ int main() {
             ImGui::RadioButton("Translate Handle", &gizmoMode, 0); ImGui::SameLine();
             ImGui::RadioButton("Rotate Handle", &gizmoMode, 1); ImGui::SameLine();
             ImGui::RadioButton("Universal", &gizmoMode, 2);
+            ImGui::SliderFloat("Origin Radius", &scene.config.originRadius, 0.01f, 0.5f);
             ImGui::SliderFloat3("Origin X/Y/Z", scene.config.rayOrigin, -3.0f, 3.0f);
             ImGui::SliderFloat3("Rotation Euler", scene.config.rayDirEuler, -180.0f, 180.0f);
         }

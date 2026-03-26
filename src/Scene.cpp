@@ -78,6 +78,6 @@ void Scene::update() {
 
 void Scene::draw(const glm::mat4& view, const glm::mat4& proj) {
     if (bvh) {
-        renderer.draw(mesh, view, proj, config.showBVHBoxes, config.showRay, config.meshOpacity, config.showWireframes);
+        renderer.draw(mesh, view, proj, config.showBVHBoxes, config.showRay, config.meshOpacity, config.showWireframes, config.originRadius);
     }
 }

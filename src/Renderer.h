@@ -31,7 +31,7 @@ public:
     void updateRay(const Ray& ray);
 
     void draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& proj,
-              bool showBVH, bool showRay, float meshOpacity, bool showWireframes);
+              bool showBVH, bool showRay, float meshOpacity, bool showWireframes, float originRadius = 0.05f);
 
 private:
     Shader* meshShader = nullptr;
@@ -53,6 +53,6 @@ private:
     GLuint sphereVAO = 0, sphereVBO = 0;
     int sphereVertexCount = 0;
 
-    void buildIcosphere();
+    void buildSourceIcon();
     void buildBVHGeometryEx(const BVH& bvh, int nodeIdx, int currentDepth, int maxDepth, std::vector<glm::vec3>& lines, std::vector<BBoxDrawCommand>& cmds);
 };

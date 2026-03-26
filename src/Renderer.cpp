@@ -91,7 +91,7 @@ void Renderer::init() {
     glGenVertexArrays(1, &rayVAO);
     glGenBuffers(1, &rayVBO);
 
-    buildIcosphere();
+    buildSourceIcon();
 }
 
 void Renderer::setupMesh(const Mesh& mesh) {
@@ -188,23 +188,41 @@ void Renderer::updateRay(const Ray& ray) {
     glBindVertexArray(0);
 }
 
-void Renderer::buildIcosphere() {
-    float t = (1.0f + sqrt(5.0f)) / 2.0f;
-    std::vector<glm::vec3> verts = {
-        {-1,  t,  0}, { 1,  t,  0}, {-1, -t,  0}, { 1, -t,  0},
-        { 0, -1,  t}, { 0,  1,  t}, { 0, -1, -t}, { 0,  1, -t},
-        { t,  0, -1}, { t,  0,  1}, {-t,  0, -1}, {-t,  0,  1}
-    };
-    int indices[] = {
-        0,11,5, 0,5,1, 0,1,7, 0,7,10, 0,10,11,
-        1,5,9, 5,11,4, 11,10,2, 10,7,6, 7,1,8,
-        3,9,4, 3,4,2, 3,2,6, 3,6,8, 3,8,9,
-        4,9,5, 2,4,11, 6,2,10, 8,6,7, 9,8,1
-    };
+void Renderer::buildSourceIcon() {
+    std::vector<glm::vec3> verts;
+    float radius = 1.0f; // Unit radius mapping
+    int sectorCount = 36;
+    int stackCount = 18;
+    
+    for(int i = 0; i <= stackCount; ++i) {
+        float stackAngle = static_cast<float>(M_PI) / 2.0f - i * (static_cast<float>(M_PI) / stackCount);
+        float xy = radius * cosf(stackAngle);
+        float z = radius * sinf(stackAngle);
+
+        for(int j = 0; j <= sectorCount; ++j) {
+            float sectorAngle = j * 2.0f * static_cast<float>(M_PI) / sectorCount;
+            float x = xy * cosf(sectorAngle);
+            float y = xy * sinf(sectorAngle);
+            verts.push_back(glm::vec3(x, y, z));
+        }
+    }
+    
     std::vector<glm::vec3> finalVerts;
-    float radius = 0.05f;
-    for (int i = 0; i < 60; i++) {
-        finalVerts.push_back(glm::normalize(verts[indices[i]]) * radius);
+    for(int i = 0; i < stackCount; ++i) {
+        int k1 = i * (sectorCount + 1);
+        int k2 = k1 + sectorCount + 1;
+        for(int j = 0; j < sectorCount; ++j, ++k1, ++k2) {
+            if(i != 0) {
+                finalVerts.push_back(verts[k1]);
+                finalVerts.push_back(verts[k2]);
+                finalVerts.push_back(verts[k1 + 1]);
+            }
+            if(i != (stackCount - 1)) {
+                finalVerts.push_back(verts[k1 + 1]);
+                finalVerts.push_back(verts[k2]);
+                finalVerts.push_back(verts[k2 + 1]);
+            }
+        }
     }
 
     glGenVertexArrays(1, &sphereVAO);
@@ -219,7 +237,7 @@ void Renderer::buildIcosphere() {
 }
 
 void Renderer::draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& proj,
-                    bool showBVH, bool showRay, float meshOpacity, bool showWireframes) {
+                    bool showBVH, bool showRay, float meshOpacity, bool showWireframes, float originRadius) {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
@@ -299,6 +317,7 @@ void Renderer::draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& pr
         glDrawArrays(GL_LINES, 0, 2);
         
         glm::mat4 model = glm::translate(glm::mat4(1.0f), rayOrigin);
+        model = glm::scale(model, glm::vec3(originRadius));
         rayShader->setMat4("model", model);
         
         glBindVertexArray(sphereVAO);
