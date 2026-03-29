@@ -163,6 +163,7 @@ int main() {
         if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Checkbox("Show BVH boxes", &scene.config.showBVHBoxes);
             ImGui::Checkbox("Show ray", &scene.config.showRay);
+            ImGui::Checkbox("Highlight hit face", &scene.config.highlightHitFaces);
             ImGui::Checkbox("Show primitive borders", &scene.config.showWireframes);
             ImGui::SliderFloat("Mesh opacity", &scene.config.meshOpacity, 0.1f, 1.0f);
         }

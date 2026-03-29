@@ -11,7 +11,8 @@ struct AABB {
     void grow(const glm::vec3& p);
     void grow(const AABB& b);
     float area() const;
-    bool intersect(const Ray& ray, float& tmin, float& tmax) const;
+    // Optionally returns which axis the ray enters on (0=x,1=y,2=z) and the facing direction (-1 or +1)
+    bool intersect(const Ray& ray, float& tmin, float& tmax, int* hitAxis = nullptr, int* hitDir = nullptr) const;
 };
 
 struct BVHNode {

@@ -27,7 +27,7 @@ public:
     void init();
     void setupMesh(const Mesh& mesh);
     void updateMeshColors(const Mesh& mesh);
-    void updateBVHWireframe(const BVH& bvh, int maxDepth);
+    void updateBVHWireframe(const BVH& bvh, int maxDepth, const Ray* ray);
     void updateRay(const Ray& ray);
 
     void draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& proj,
@@ -49,10 +49,16 @@ private:
     };
     std::vector<BBoxDrawCommand> bvhDrawCommands;
 
+    GLuint hitVAO = 0, hitVBO = 0;
+    std::vector<BBoxDrawCommand> hitDrawCommands;
+
     GLuint rayVAO = 0, rayVBO = 0;
     GLuint sphereVAO = 0, sphereVBO = 0;
     int sphereVertexCount = 0;
 
     void buildSourceIcon();
-    void buildBVHGeometryEx(const BVH& bvh, int nodeIdx, int currentDepth, int maxDepth, std::vector<glm::vec3>& lines, std::vector<BBoxDrawCommand>& cmds);
+    void buildBVHGeometryEx(const BVH& bvh, int nodeIdx, int currentDepth, int maxDepth,
+                            const Ray* ray,
+                            std::vector<glm::vec3>& lines, std::vector<BBoxDrawCommand>& cmds,
+                            std::vector<glm::vec3>& hitFaces, std::vector<BBoxDrawCommand>& hitCmds);
 };

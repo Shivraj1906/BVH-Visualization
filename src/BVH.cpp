@@ -19,7 +19,7 @@ float AABB::area() const {
     return e.x * e.y + e.y * e.z + e.z * e.x;
 }
 
-bool AABB::intersect(const Ray& ray, float& tmin, float& tmax) const {
+bool AABB::intersect(const Ray& ray, float& tmin, float& tmax, int* hitAxis, int* hitDir) const {
     float tx1 = (bmin.x - ray.origin.x) * ray.invDir.x;
     float tx2 = (bmax.x - ray.origin.x) * ray.invDir.x;
     float tmin_x = std::min(tx1, tx2);
@@ -38,7 +38,22 @@ bool AABB::intersect(const Ray& ray, float& tmin, float& tmax) const {
     tmin = std::max(std::max(tmin_x, tmin_y), tmin_z);
     tmax = std::min(std::min(tmax_x, tmax_y), tmax_z);
 
-    return tmax >= tmin && tmax > 0.0f;
+    if (tmax < tmin || tmax <= 0.0f) return false;
+
+    if (hitAxis || hitDir) {
+        int axis = 0;
+        float bestT = tmin_x;
+        if (tmin_y > bestT) { axis = 1; bestT = tmin_y; }
+        if (tmin_z > bestT) { axis = 2; bestT = tmin_z; }
+        if (hitAxis) *hitAxis = axis;
+        if (hitDir) {
+            // Entering face normal points outward; sign is based on ray direction
+            float dirComp = axis == 0 ? ray.dir.x : (axis == 1 ? ray.dir.y : ray.dir.z);
+            *hitDir = dirComp >= 0.0f ? -1 : 1;
+        }
+    }
+
+    return true;
 }
 
 BVH::BVH(std::vector<Triangle>& triangles) : tris(triangles) {

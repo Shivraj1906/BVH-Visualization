@@ -122,7 +122,10 @@ void Renderer::updateMeshColors(const Mesh& mesh) {
     glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.colors.size() * sizeof(glm::vec3), mesh.colors.data());
 }
 
-void Renderer::buildBVHGeometryEx(const BVH& bvh, int nodeIdx, int currentDepth, int maxDepth, std::vector<glm::vec3>& lines, std::vector<BBoxDrawCommand>& cmds) {
+void Renderer::buildBVHGeometryEx(const BVH& bvh, int nodeIdx, int currentDepth, int maxDepth,
+                                 const Ray* ray,
+                                 std::vector<glm::vec3>& lines, std::vector<BBoxDrawCommand>& cmds,
+                                 std::vector<glm::vec3>& hitFaces, std::vector<BBoxDrawCommand>& hitCmds) {
     const BVHNode& node = bvh.nodes[nodeIdx];
     
     if (currentDepth <= maxDepth) {
@@ -150,25 +153,76 @@ void Renderer::buildBVHGeometryEx(const BVH& bvh, int nodeIdx, int currentDepth,
         // cyan -> yellow -> magenta approximation
         cmds.back().color = glm::vec3(1.0f - t, t, 1.0f); 
 
+        if (ray) {
+            float tmin, tmax;
+            int axis = -1, dir = 0;
+            if (node.bounds.intersect(*ray, tmin, tmax, &axis, &dir)) {
+                glm::vec3 p0 = node.bounds.bmin;
+                glm::vec3 p1 = node.bounds.bmax;
+                glm::vec3 faceVerts[4];
+                if (axis == 0) {
+                    float x = dir == -1 ? p0.x : p1.x;
+                    faceVerts[0] = {x, p0.y, p0.z};
+                    faceVerts[1] = {x, p1.y, p0.z};
+                    faceVerts[2] = {x, p1.y, p1.z};
+                    faceVerts[3] = {x, p0.y, p1.z};
+                } else if (axis == 1) {
+                    float y = dir == -1 ? p0.y : p1.y;
+                    faceVerts[0] = {p0.x, y, p0.z};
+                    faceVerts[1] = {p1.x, y, p0.z};
+                    faceVerts[2] = {p1.x, y, p1.z};
+                    faceVerts[3] = {p0.x, y, p1.z};
+                } else {
+                    float z = dir == -1 ? p0.z : p1.z;
+                    faceVerts[0] = {p0.x, p0.y, z};
+                    faceVerts[1] = {p1.x, p0.y, z};
+                    faceVerts[2] = {p1.x, p1.y, z};
+                    faceVerts[3] = {p0.x, p1.y, z};
+                }
+
+                int offset = (int)hitFaces.size();
+                hitCmds.push_back({offset, 6, glm::vec3(1.0f, 0.85f, 0.2f)});
+                hitFaces.push_back(faceVerts[0]);
+                hitFaces.push_back(faceVerts[1]);
+                hitFaces.push_back(faceVerts[2]);
+                hitFaces.push_back(faceVerts[0]);
+                hitFaces.push_back(faceVerts[2]);
+                hitFaces.push_back(faceVerts[3]);
+            }
+        }
+
         if (!node.isLeaf()) {
-            buildBVHGeometryEx(bvh, node.left, currentDepth + 1, maxDepth, lines, cmds);
-            buildBVHGeometryEx(bvh, node.right, currentDepth + 1, maxDepth, lines, cmds);
+            buildBVHGeometryEx(bvh, node.left, currentDepth + 1, maxDepth, ray, lines, cmds, hitFaces, hitCmds);
+            buildBVHGeometryEx(bvh, node.right, currentDepth + 1, maxDepth, ray, lines, cmds, hitFaces, hitCmds);
         }
     }
 }
 
-void Renderer::updateBVHWireframe(const BVH& bvh, int maxDepth) {
+void Renderer::updateBVHWireframe(const BVH& bvh, int maxDepth, const Ray* ray) {
     std::vector<glm::vec3> lines;
+    std::vector<glm::vec3> hitFaces;
     bvhDrawCommands.clear();
+    hitDrawCommands.clear();
 
     if (maxDepth > 0 && !bvh.nodes.empty()) {
-        buildBVHGeometryEx(bvh, bvh.rootNodeIdx, 1, maxDepth, lines, bvhDrawCommands);
+        buildBVHGeometryEx(bvh, bvh.rootNodeIdx, 1, maxDepth, ray, lines, bvhDrawCommands, hitFaces, hitDrawCommands);
     }
 
     if (!lines.empty()) {
         glBindVertexArray(bvhVAO);
         glBindBuffer(GL_ARRAY_BUFFER, bvhVBO);
         glBufferData(GL_ARRAY_BUFFER, lines.size() * sizeof(glm::vec3), lines.data(), GL_DYNAMIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+        glEnableVertexAttribArray(0);
+        glBindVertexArray(0);
+    }
+
+    if (!hitFaces.empty()) {
+        if (hitVAO == 0) glGenVertexArrays(1, &hitVAO);
+        if (hitVBO == 0) glGenBuffers(1, &hitVBO);
+        glBindVertexArray(hitVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, hitVBO);
+        glBufferData(GL_ARRAY_BUFFER, hitFaces.size() * sizeof(glm::vec3), hitFaces.data(), GL_DYNAMIC_DRAW);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
         glEnableVertexAttribArray(0);
         glBindVertexArray(0);
@@ -267,6 +321,7 @@ void Renderer::draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& pr
             bboxShader->setMat4("view", view);
             bboxShader->setMat4("projection", proj);
             bboxShader->setVec3("uColor", glm::vec3(0.0f, 0.0f, 0.0f)); // Black borders
+            bboxShader->setFloat("uAlpha", 1.0f);
             
             glDrawArrays(GL_TRIANGLES, 0, meshVertexCount);
             
@@ -281,10 +336,11 @@ void Renderer::draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& pr
     // 2. BVH Wireframe Pass
     if (showBVH && !bvhDrawCommands.empty()) {
         glDepthMask(GL_FALSE);
-        
+
         bboxShader->use();
         bboxShader->setMat4("view", view);
         bboxShader->setMat4("projection", proj);
+        bboxShader->setFloat("uAlpha", 1.0f);
 
         glBindVertexArray(bvhVAO);
         for (const auto& cmd : bvhDrawCommands) {
@@ -294,6 +350,28 @@ void Renderer::draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& pr
         glBindVertexArray(0);
 
         glDepthMask(GL_TRUE);
+    }
+
+    // 2b. Highlight entry faces for boxes hit by the ray
+    if (showBVH && !hitDrawCommands.empty()) {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+
+        bboxShader->use();
+        bboxShader->setMat4("view", view);
+        bboxShader->setMat4("projection", proj);
+
+        glBindVertexArray(hitVAO);
+        for (const auto& cmd : hitDrawCommands) {
+            bboxShader->setVec3("uColor", cmd.color);
+            bboxShader->setFloat("uAlpha", 0.35f);
+            glDrawArrays(GL_TRIANGLES, cmd.offset, cmd.count);
+        }
+        glBindVertexArray(0);
+
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
     }
 
     // 3. Ray Pass

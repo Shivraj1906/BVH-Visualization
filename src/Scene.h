@@ -16,6 +16,7 @@ struct SceneConfig {
     bool showBVHBoxes = true;
     bool showRay = true;
     bool showWireframes = true;
+    bool highlightHitFaces = true;
     float meshOpacity = 1.0f;
 };
 

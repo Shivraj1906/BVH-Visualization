@@ -42,6 +42,7 @@ void Scene::update() {
         config.rayDirEuler[0] != lastConfig.rayDirEuler[0] ||
         config.rayDirEuler[1] != lastConfig.rayDirEuler[1] ||
         config.rayDirEuler[2] != lastConfig.rayDirEuler[2] ||
+        config.highlightHitFaces != lastConfig.highlightHitFaces ||
         needsUpdate) {
         
         needsUpdate = false;
@@ -69,7 +70,7 @@ void Scene::update() {
             }
             
             renderer.updateMeshColors(mesh);
-            renderer.updateBVHWireframe(*bvh, depthLimit);
+            renderer.updateBVHWireframe(*bvh, depthLimit, config.highlightHitFaces ? currentRay : nullptr);
         }
 
         renderer.updateRay(*currentRay);
