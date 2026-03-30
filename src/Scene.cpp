@@ -43,6 +43,7 @@ void Scene::update() {
         config.rayDirEuler[1] != lastConfig.rayDirEuler[1] ||
         config.rayDirEuler[2] != lastConfig.rayDirEuler[2] ||
         config.highlightHitFaces != lastConfig.highlightHitFaces ||
+        config.lineWidth != lastConfig.lineWidth ||
         needsUpdate) {
         
         needsUpdate = false;
@@ -61,7 +62,7 @@ void Scene::update() {
             bvh->traverse(*currentRay, depthLimit, testedTris, statBoxTests, statTriTests);
             
             mesh.resetColors();
-            glm::vec3 redColor(1.0f, 0.2f, 0.35f); // Coral pink/red aesthetic
+            glm::vec3 redColor(0.85f, 0.18f, 0.30f); // Deeper accent for light background
             
             for (int triIdx : testedTris) {
                 mesh.colors[triIdx * 3 + 0] = redColor;
@@ -79,6 +80,6 @@ void Scene::update() {
 
 void Scene::draw(const glm::mat4& view, const glm::mat4& proj) {
     if (bvh) {
-        renderer.draw(mesh, view, proj, config.showBVHBoxes, config.showRay, config.meshOpacity, config.showWireframes, config.originRadius);
+        renderer.draw(mesh, view, proj, config.showBVHBoxes, config.showRay, config.meshOpacity, config.showWireframes, config.originRadius, config.lineWidth);
     }
 }

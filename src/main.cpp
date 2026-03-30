@@ -80,7 +80,27 @@ int main() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
-    ImGui::StyleColorsDark();
+    ImGui::StyleColorsLight();
+
+    // Light UI accents to stand out on white background
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImVec4 accent(0.08f, 0.45f, 0.85f, 1.0f);
+    ImVec4 accentHover(0.12f, 0.55f, 0.95f, 1.0f);
+    style.Colors[ImGuiCol_WindowBg]        = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+    style.Colors[ImGuiCol_TitleBg]         = ImVec4(0.95f, 0.97f, 1.0f, 1.0f);
+    style.Colors[ImGuiCol_TitleBgActive]   = ImVec4(0.90f, 0.94f, 1.0f, 1.0f);
+    style.Colors[ImGuiCol_Header]          = accent;
+    style.Colors[ImGuiCol_HeaderHovered]   = accentHover;
+    style.Colors[ImGuiCol_HeaderActive]    = accentHover;
+    style.Colors[ImGuiCol_Button]          = accent;
+    style.Colors[ImGuiCol_ButtonHovered]   = accentHover;
+    style.Colors[ImGuiCol_ButtonActive]    = ImVec4(0.06f, 0.36f, 0.72f, 1.0f);
+    style.Colors[ImGuiCol_FrameBg]         = ImVec4(0.96f, 0.97f, 0.99f, 1.0f);
+    style.Colors[ImGuiCol_FrameBgHovered]  = ImVec4(0.92f, 0.95f, 0.99f, 1.0f);
+    style.Colors[ImGuiCol_SliderGrab]      = accent;
+    style.Colors[ImGuiCol_SliderGrabActive]= accentHover;
+    style.Colors[ImGuiCol_Text]            = ImVec4(0.07f, 0.07f, 0.08f, 1.0f);
+    style.Colors[ImGuiCol_Separator]       = ImVec4(0.75f, 0.80f, 0.88f, 1.0f);
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
 
@@ -109,7 +129,7 @@ int main() {
             if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) camPos -= camUp * velocity;
         }
 
-        glClearColor(0.12f, 0.12f, 0.14f, 1.0f);
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -166,6 +186,7 @@ int main() {
             ImGui::Checkbox("Highlight hit face", &scene.config.highlightHitFaces);
             ImGui::Checkbox("Show primitive borders", &scene.config.showWireframes);
             ImGui::SliderFloat("Mesh opacity", &scene.config.meshOpacity, 0.1f, 1.0f);
+            ImGui::SliderFloat("Line width (BVH & ray)", &scene.config.lineWidth, 1.0f, 6.0f, "%.1f px");
         }
         ImGui::End();
 

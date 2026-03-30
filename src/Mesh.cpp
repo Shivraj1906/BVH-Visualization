@@ -92,7 +92,7 @@ bool Mesh::init(const std::string& filepath) {
     // Bake simple lambertian shading
     for (size_t i = 0; i < normals.size(); ++i) {
         glm::vec3 lightDir = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
-        float ndotl = glm::max(0.2f, glm::dot(normals[i], lightDir));
+        float ndotl = glm::max(0.4f, glm::dot(normals[i], lightDir)); // keep bright on white bg
         baseColors[i] = defaultColor * ndotl;
         colors[i] = baseColors[i];
     }

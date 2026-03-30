@@ -31,7 +31,7 @@ public:
     void updateRay(const Ray& ray);
 
     void draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& proj,
-              bool showBVH, bool showRay, float meshOpacity, bool showWireframes, float originRadius = 0.05f);
+              bool showBVH, bool showRay, float meshOpacity, bool showWireframes, float originRadius = 0.05f, float lineWidth = 1.0f);
 
 private:
     Shader* meshShader = nullptr;

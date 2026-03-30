@@ -150,8 +150,14 @@ void Renderer::buildBVHGeometryEx(const BVH& bvh, int nodeIdx, int currentDepth,
         }
 
         float t = (float)currentDepth / (float)std::max(1, maxDepth);
-        // cyan -> yellow -> magenta approximation
-        cmds.back().color = glm::vec3(1.0f - t, t, 1.0f); 
+        // Darker gradient that stays legible on white: blue -> amber -> plum
+        glm::vec3 startColor(0.10f, 0.45f, 0.85f);
+        glm::vec3 midColor(0.95f, 0.55f, 0.15f);
+        glm::vec3 endColor(0.62f, 0.20f, 0.62f);
+        glm::vec3 color;
+        if (t < 0.5f) color = glm::mix(startColor, midColor, t * 2.0f);
+        else color = glm::mix(midColor, endColor, (t - 0.5f) * 2.0f);
+        cmds.back().color = color; 
 
         if (ray) {
             float tmin, tmax;
@@ -181,7 +187,7 @@ void Renderer::buildBVHGeometryEx(const BVH& bvh, int nodeIdx, int currentDepth,
                 }
 
                 int offset = (int)hitFaces.size();
-                hitCmds.push_back({offset, 6, glm::vec3(1.0f, 0.85f, 0.2f)});
+                hitCmds.push_back({offset, 6, glm::vec3(0.95f, 0.42f, 0.12f)});
                 hitFaces.push_back(faceVerts[0]);
                 hitFaces.push_back(faceVerts[1]);
                 hitFaces.push_back(faceVerts[2]);
@@ -291,7 +297,7 @@ void Renderer::buildSourceIcon() {
 }
 
 void Renderer::draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& proj,
-                    bool showBVH, bool showRay, float meshOpacity, bool showWireframes, float originRadius) {
+                    bool showBVH, bool showRay, float meshOpacity, bool showWireframes, float originRadius, float lineWidth) {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
@@ -336,6 +342,7 @@ void Renderer::draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& pr
     // 2. BVH Wireframe Pass
     if (showBVH && !bvhDrawCommands.empty()) {
         glDepthMask(GL_FALSE);
+        glLineWidth(lineWidth);
 
         bboxShader->use();
         bboxShader->setMat4("view", view);
@@ -350,6 +357,7 @@ void Renderer::draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& pr
         glBindVertexArray(0);
 
         glDepthMask(GL_TRUE);
+        glLineWidth(1.0f);
     }
 
     // 2b. Highlight entry faces for boxes hit by the ray
@@ -379,12 +387,13 @@ void Renderer::draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& pr
         rayShader->use();
         rayShader->setMat4("view", view);
         rayShader->setMat4("projection", proj);
-        rayShader->setVec3("uColor", glm::vec3(1.0f, 1.0f, 0.0f));
+        rayShader->setVec3("uColor", glm::vec3(0.05f, 0.55f, 0.40f));
 
         // RESET model matrix for the line since it has baked-in world coordinates
         rayShader->setMat4("model", glm::mat4(1.0f));
 
         glBindVertexArray(rayVAO);
+        glLineWidth(lineWidth);
         
         // Retrieve origin from VBO
         glm::vec3 lineData[2];
@@ -393,6 +402,7 @@ void Renderer::draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& pr
         glm::vec3 rayOrigin = lineData[0];
 
         glDrawArrays(GL_LINES, 0, 2);
+        glLineWidth(1.0f);
         
         glm::mat4 model = glm::translate(glm::mat4(1.0f), rayOrigin);
         model = glm::scale(model, glm::vec3(originRadius));

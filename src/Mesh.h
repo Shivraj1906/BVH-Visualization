@@ -27,7 +27,7 @@ public:
     std::vector<glm::vec3> baseColors; 
 
     std::vector<Triangle> triangles;
-    glm::vec3 defaultColor = glm::vec3(0.75f, 0.75f, 0.75f);
+    glm::vec3 defaultColor = glm::vec3(0.90f, 0.90f, 0.88f); // soft off-white for light theme
 
     void resetColors();
 };
