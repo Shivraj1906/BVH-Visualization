@@ -27,11 +27,13 @@ public:
     void init();
     void setupMesh(const Mesh& mesh);
     void updateMeshColors(const Mesh& mesh);
-    void updateBVHWireframe(const BVH& bvh, int maxDepth, const Ray* ray);
+    void updateBVHWireframe(const BVH& bvh, int maxDepth, const Ray* ray, bool collectFaces);
     void updateRay(const Ray& ray);
+    void setGeometryHitPoints(const std::vector<glm::vec3>& points);
 
     void draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& proj,
-              bool showBVH, bool showRay, float meshOpacity, bool showWireframes, float originRadius = 0.05f, float lineWidth = 1.0f);
+              bool showBVH, bool showRay, float meshOpacity, bool showWireframes,
+              float originRadius = 0.05f, float lineWidth = 1.0f, float dotRadius = 0.03f);
 
 private:
     Shader* meshShader = nullptr;
@@ -56,9 +58,12 @@ private:
     GLuint sphereVAO = 0, sphereVBO = 0;
     int sphereVertexCount = 0;
 
+    std::vector<glm::vec3> bvhHitPoints;
+    std::vector<glm::vec3> geomHitPoints;
+
     void buildSourceIcon();
     void buildBVHGeometryEx(const BVH& bvh, int nodeIdx, int currentDepth, int maxDepth,
-                            const Ray* ray,
+                            const Ray* ray, bool collectFaces,
                             std::vector<glm::vec3>& lines, std::vector<BBoxDrawCommand>& cmds,
                             std::vector<glm::vec3>& hitFaces, std::vector<BBoxDrawCommand>& hitCmds);
 };

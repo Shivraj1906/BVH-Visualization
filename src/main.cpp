@@ -187,6 +187,7 @@ int main() {
             ImGui::Checkbox("Show primitive borders", &scene.config.showWireframes);
             ImGui::SliderFloat("Mesh opacity", &scene.config.meshOpacity, 0.1f, 1.0f);
             ImGui::SliderFloat("Line width (BVH & ray)", &scene.config.lineWidth, 1.0f, 6.0f, "%.1f px");
+            ImGui::SliderFloat("Dot size", &scene.config.dotRadius, 0.005f, 0.1f, "%.3f");
         }
         ImGui::End();
 

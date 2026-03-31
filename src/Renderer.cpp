@@ -123,7 +123,7 @@ void Renderer::updateMeshColors(const Mesh& mesh) {
 }
 
 void Renderer::buildBVHGeometryEx(const BVH& bvh, int nodeIdx, int currentDepth, int maxDepth,
-                                 const Ray* ray,
+                                 const Ray* ray, bool collectFaces,
                                  std::vector<glm::vec3>& lines, std::vector<BBoxDrawCommand>& cmds,
                                  std::vector<glm::vec3>& hitFaces, std::vector<BBoxDrawCommand>& hitCmds) {
     const BVHNode& node = bvh.nodes[nodeIdx];
@@ -163,6 +163,8 @@ void Renderer::buildBVHGeometryEx(const BVH& bvh, int nodeIdx, int currentDepth,
             float tmin, tmax;
             int axis = -1, dir = 0;
             if (node.bounds.intersect(*ray, tmin, tmax, &axis, &dir)) {
+                bvhHitPoints.push_back(ray->origin + ray->dir * tmin);
+
                 glm::vec3 p0 = node.bounds.bmin;
                 glm::vec3 p1 = node.bounds.bmax;
                 glm::vec3 faceVerts[4];
@@ -186,32 +188,35 @@ void Renderer::buildBVHGeometryEx(const BVH& bvh, int nodeIdx, int currentDepth,
                     faceVerts[3] = {p0.x, p1.y, z};
                 }
 
-                int offset = (int)hitFaces.size();
-                hitCmds.push_back({offset, 6, glm::vec3(0.95f, 0.42f, 0.12f)});
-                hitFaces.push_back(faceVerts[0]);
-                hitFaces.push_back(faceVerts[1]);
-                hitFaces.push_back(faceVerts[2]);
-                hitFaces.push_back(faceVerts[0]);
-                hitFaces.push_back(faceVerts[2]);
-                hitFaces.push_back(faceVerts[3]);
+                if (collectFaces) {
+                    int offset = (int)hitFaces.size();
+                    hitCmds.push_back({offset, 6, glm::vec3(0.95f, 0.42f, 0.12f)});
+                    hitFaces.push_back(faceVerts[0]);
+                    hitFaces.push_back(faceVerts[1]);
+                    hitFaces.push_back(faceVerts[2]);
+                    hitFaces.push_back(faceVerts[0]);
+                    hitFaces.push_back(faceVerts[2]);
+                    hitFaces.push_back(faceVerts[3]);
+                }
             }
         }
 
         if (!node.isLeaf()) {
-            buildBVHGeometryEx(bvh, node.left, currentDepth + 1, maxDepth, ray, lines, cmds, hitFaces, hitCmds);
-            buildBVHGeometryEx(bvh, node.right, currentDepth + 1, maxDepth, ray, lines, cmds, hitFaces, hitCmds);
+            buildBVHGeometryEx(bvh, node.left, currentDepth + 1, maxDepth, ray, collectFaces, lines, cmds, hitFaces, hitCmds);
+            buildBVHGeometryEx(bvh, node.right, currentDepth + 1, maxDepth, ray, collectFaces, lines, cmds, hitFaces, hitCmds);
         }
     }
 }
 
-void Renderer::updateBVHWireframe(const BVH& bvh, int maxDepth, const Ray* ray) {
+void Renderer::updateBVHWireframe(const BVH& bvh, int maxDepth, const Ray* ray, bool collectFaces) {
     std::vector<glm::vec3> lines;
     std::vector<glm::vec3> hitFaces;
     bvhDrawCommands.clear();
     hitDrawCommands.clear();
+    bvhHitPoints.clear();
 
     if (maxDepth > 0 && !bvh.nodes.empty()) {
-        buildBVHGeometryEx(bvh, bvh.rootNodeIdx, 1, maxDepth, ray, lines, bvhDrawCommands, hitFaces, hitDrawCommands);
+        buildBVHGeometryEx(bvh, bvh.rootNodeIdx, 1, maxDepth, ray, collectFaces, lines, bvhDrawCommands, hitFaces, hitDrawCommands);
     }
 
     if (!lines.empty()) {
@@ -246,6 +251,10 @@ void Renderer::updateRay(const Ray& ray) {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
+}
+
+void Renderer::setGeometryHitPoints(const std::vector<glm::vec3>& points) {
+    geomHitPoints = points;
 }
 
 void Renderer::buildSourceIcon() {
@@ -297,7 +306,8 @@ void Renderer::buildSourceIcon() {
 }
 
 void Renderer::draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& proj,
-                    bool showBVH, bool showRay, float meshOpacity, bool showWireframes, float originRadius, float lineWidth) {
+                    bool showBVH, bool showRay, float meshOpacity, bool showWireframes,
+                    float originRadius, float lineWidth, float dotRadius) {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
@@ -410,6 +420,20 @@ void Renderer::draw(const Mesh& mesh, const glm::mat4& view, const glm::mat4& pr
         
         glBindVertexArray(sphereVAO);
         glDrawArrays(GL_TRIANGLES, 0, sphereVertexCount);
+
+        auto drawDots = [&](const std::vector<glm::vec3>& points, const glm::vec3& color) {
+            if (points.empty()) return;
+            rayShader->setVec3("uColor", color);
+            for (const auto& p : points) {
+                glm::mat4 dotModel = glm::translate(glm::mat4(1.0f), p);
+                dotModel = glm::scale(dotModel, glm::vec3(dotRadius));
+                rayShader->setMat4("model", dotModel);
+                glDrawArrays(GL_TRIANGLES, 0, sphereVertexCount);
+            }
+        };
+
+        drawDots(bvhHitPoints, glm::vec3(0.40f, 0.12f, 0.70f));
+        drawDots(geomHitPoints, glm::vec3(0.95f, 0.32f, 0.15f));
         glBindVertexArray(0);
     }
 }

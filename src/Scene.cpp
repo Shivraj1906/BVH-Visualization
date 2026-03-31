@@ -1,6 +1,28 @@
 #include "Scene.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <cmath>
+
+static bool intersectRayTriangle(const Ray& ray, const Triangle& tri, float& tHit, glm::vec3& hitPos) {
+    const float EPS = 1e-6f;
+    glm::vec3 edge1 = tri.v1 - tri.v0;
+    glm::vec3 edge2 = tri.v2 - tri.v0;
+    glm::vec3 pvec = glm::cross(ray.dir, edge2);
+    float det = glm::dot(edge1, pvec);
+    if (std::fabs(det) < EPS) return false;
+    float invDet = 1.0f / det;
+    glm::vec3 tvec = ray.origin - tri.v0;
+    float u = glm::dot(tvec, pvec) * invDet;
+    if (u < 0.0f || u > 1.0f) return false;
+    glm::vec3 qvec = glm::cross(tvec, edge1);
+    float v = glm::dot(ray.dir, qvec) * invDet;
+    if (v < 0.0f || u + v > 1.0f) return false;
+    float t = glm::dot(edge2, qvec) * invDet;
+    if (t <= 0.0f) return false;
+    tHit = t;
+    hitPos = ray.origin + ray.dir * tHit;
+    return true;
+}
 
 Scene::Scene() {}
 
@@ -44,6 +66,7 @@ void Scene::update() {
         config.rayDirEuler[2] != lastConfig.rayDirEuler[2] ||
         config.highlightHitFaces != lastConfig.highlightHitFaces ||
         config.lineWidth != lastConfig.lineWidth ||
+        config.dotRadius != lastConfig.dotRadius ||
         needsUpdate) {
         
         needsUpdate = false;
@@ -69,9 +92,23 @@ void Scene::update() {
                 mesh.colors[triIdx * 3 + 1] = redColor;
                 mesh.colors[triIdx * 3 + 2] = redColor;
             }
+
+            std::vector<glm::vec3> geomHits;
+            geomHits.reserve(testedTris.size());
+            for (int triIdx : testedTris) {
+                const Triangle& tri = mesh.triangles[triIdx];
+                float tHit = 0.0f;
+                glm::vec3 hitPos;
+                if (intersectRayTriangle(*currentRay, tri, tHit, hitPos)) {
+                    geomHits.push_back(hitPos);
+                }
+            }
             
             renderer.updateMeshColors(mesh);
-            renderer.updateBVHWireframe(*bvh, depthLimit, config.highlightHitFaces ? currentRay : nullptr);
+            renderer.updateBVHWireframe(*bvh, depthLimit, currentRay, config.highlightHitFaces);
+            renderer.setGeometryHitPoints(geomHits);
+        } else {
+            renderer.setGeometryHitPoints({});
         }
 
         renderer.updateRay(*currentRay);
@@ -80,6 +117,6 @@ void Scene::update() {
 
 void Scene::draw(const glm::mat4& view, const glm::mat4& proj) {
     if (bvh) {
-        renderer.draw(mesh, view, proj, config.showBVHBoxes, config.showRay, config.meshOpacity, config.showWireframes, config.originRadius, config.lineWidth);
+        renderer.draw(mesh, view, proj, config.showBVHBoxes, config.showRay, config.meshOpacity, config.showWireframes, config.originRadius, config.lineWidth, config.dotRadius);
     }
 }
