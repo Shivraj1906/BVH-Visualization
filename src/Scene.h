@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include "Mesh.h"
 #include "BVH.h"
 #include "Ray.h"
@@ -28,8 +29,11 @@ public:
     ~Scene();
 
     void init();
+    bool loadModel(const std::string& filepath);
     void update();
     void draw(const glm::mat4& view, const glm::mat4& proj);
+    bool shouldResetCamera() const;
+    void acknowledgeCameraReset();
 
     SceneConfig config;
 
@@ -48,4 +52,5 @@ private:
 
     bool needsUpdate = true;
     SceneConfig lastConfig;
+    bool cameraResetRequested = false;
 };

@@ -95,6 +95,13 @@ void Renderer::init() {
 }
 
 void Renderer::setupMesh(const Mesh& mesh) {
+    if (meshVAO != 0) {
+        glDeleteVertexArrays(1, &meshVAO);
+        glDeleteBuffers(1, &meshVBO_pos);
+        glDeleteBuffers(1, &meshVBO_col);
+        meshVAO = meshVBO_pos = meshVBO_col = 0;
+    }
+
     glGenVertexArrays(1, &meshVAO);
     glGenBuffers(1, &meshVBO_pos);
     glGenBuffers(1, &meshVBO_col);

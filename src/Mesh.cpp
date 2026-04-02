@@ -82,6 +82,12 @@ bool MeshLoader::loadOBJ(const std::string& filepath,
 }
 
 bool Mesh::init(const std::string& filepath) {
+    vertices.clear();
+    normals.clear();
+    triangles.clear();
+    baseColors.clear();
+    colors.clear();
+
     if (!MeshLoader::loadOBJ(filepath, vertices, normals, triangles)) {
         return false;
     }

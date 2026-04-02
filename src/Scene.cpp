@@ -33,25 +33,36 @@ Scene::~Scene() {
 
 void Scene::init() {
     renderer.init();
-    
-    if (mesh.init("../assets/bunny_lowpoly.obj")) {
-        bvh = new BVH(mesh.triangles);
-        bvh->build();
-        statTotalTris = (int)mesh.triangles.size();
-        maxTreeDepth = bvh->maxTreeDepth;
-        renderer.setupMesh(mesh);
+    if (!loadModel("../assets/bunny_lowpoly.obj")) {
+        std::cerr << "Failed to load default mesh!" << std::endl;
+    }
+}
 
-        glm::vec3 sum(0.0f);
-        for (const auto& v : mesh.vertices) sum += v;
-        if (!mesh.vertices.empty()) meshCentroid = sum / (float)mesh.vertices.size();
-        
-        // Initial ray setup will happen cleanly in first update()
-    } else {
-        std::cerr << "Failed to load mesh!" << std::endl;
+bool Scene::loadModel(const std::string& filepath) {
+    if (!mesh.init(filepath)) {
+        std::cerr << "Failed to load mesh: " << filepath << std::endl;
+        return false;
     }
 
-    lastConfig = config;
+    statTotalTris = (int)mesh.triangles.size();
+
+    delete bvh;
+    bvh = new BVH(mesh.triangles);
+    bvh->build();
+    maxTreeDepth = bvh->maxTreeDepth;
+    renderer.setupMesh(mesh);
+
+    glm::vec3 sum(0.0f);
+    for (const auto& v : mesh.vertices) sum += v;
+    meshCentroid = mesh.vertices.empty() ? glm::vec3(0.0f) : sum / (float)mesh.vertices.size();
+
+    statBoxTests = 0;
+    statTriTests = 0;
     needsUpdate = true;
+    lastConfig = config;
+    cameraResetRequested = true;
+
+    return true;
 }
 
 void Scene::update() {
@@ -119,4 +130,12 @@ void Scene::draw(const glm::mat4& view, const glm::mat4& proj) {
     if (bvh) {
         renderer.draw(mesh, view, proj, config.showBVHBoxes, config.showRay, config.meshOpacity, config.showWireframes, config.originRadius, config.lineWidth, config.dotRadius);
     }
+}
+
+bool Scene::shouldResetCamera() const {
+    return cameraResetRequested;
+}
+
+void Scene::acknowledgeCameraReset() {
+    cameraResetRequested = false;
 }

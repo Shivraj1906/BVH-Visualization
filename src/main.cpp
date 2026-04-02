@@ -11,6 +11,7 @@
 #include "Scene.h"
 #include <iostream>
 #include <cmath>
+#include <string>
 
 glm::vec3 camPos(0.0f, 0.5f, 5.0f);
 glm::vec3 camFront(0.0f, 0.0f, -1.0f);
@@ -107,6 +108,9 @@ int main() {
     Scene scene;
     scene.init();
     camPos = scene.meshCentroid + glm::vec3(0.0f, 0.0f, 3.0f);
+    static char modelPathBuf[512] = "../assets/bunny_lowpoly.obj";
+    static std::string modelLoadMessage;
+    static bool modelLoadSuccess = true;
 
     float deltaTime = 0.0f;
     float lastFrame = 0.0f;
@@ -141,6 +145,13 @@ int main() {
         glfwGetFramebufferSize(window, &dw, &dh);
         glViewport(0, 0, dw, dh);
         ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+        if (scene.shouldResetCamera()) {
+            camPos = scene.meshCentroid + glm::vec3(0.0f, 0.0f, 3.0f);
+            camYaw = -90.0f;
+            camPitch = 0.0f;
+            scene.acknowledgeCameraReset();
+        }
 
         glm::mat4 view = glm::lookAt(camPos, camPos + camFront, camUp);
         glm::mat4 proj = glm::perspective(glm::radians(45.0f), (float)dw / (float)dh, 0.1f, 100.0f);
@@ -188,6 +199,22 @@ int main() {
             ImGui::SliderFloat("Mesh opacity", &scene.config.meshOpacity, 0.1f, 1.0f);
             ImGui::SliderFloat("Line width (BVH & ray)", &scene.config.lineWidth, 1.0f, 6.0f, "%.1f px");
             ImGui::SliderFloat("Dot size", &scene.config.dotRadius, 0.005f, 0.1f, "%.3f");
+        }
+        if (ImGui::CollapsingHeader("Model Loader", ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::InputText("OBJ Path", modelPathBuf, sizeof(modelPathBuf));
+            if (ImGui::Button("Load Mesh")) {
+                if (scene.loadModel(modelPathBuf)) {
+                    modelLoadMessage = std::string("Loaded ") + modelPathBuf;
+                    modelLoadSuccess = true;
+                } else {
+                    modelLoadMessage = std::string("Failed to load ") + modelPathBuf;
+                    modelLoadSuccess = false;
+                }
+            }
+            if (!modelLoadMessage.empty()) {
+                ImVec4 statusColor = modelLoadSuccess ? ImVec4(0.16f, 0.68f, 0.32f, 1.0f) : ImVec4(0.76f, 0.07f, 0.07f, 1.0f);
+                ImGui::TextColored(statusColor, "%s", modelLoadMessage.c_str());
+            }
         }
         ImGui::End();
 
